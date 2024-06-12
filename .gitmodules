@@ -1,0 +1,3 @@
+[submodule "visual_mapping_localization"]
+	path = visual_mapping_localization
+	url = https://github.com/linyicheng1/visual_mapping_localization.git
