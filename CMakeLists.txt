@@ -42,7 +42,12 @@ find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(realsense2)
 
+set(OpenVINO_DIR /home/vio/Code/NN/openvino/l_openvino_toolkit_ubuntu20_2024.0.0.14509.34caeefd078_x86_64/runtime/cmake)
+find_package(OpenVINO REQUIRED)
+
 include_directories(
+visual_mapping_localization/inc
+visual_mapping_localization/learned_features_inference/inc
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${PROJECT_SOURCE_DIR}/include/CameraModels
@@ -52,6 +57,41 @@ ${Pangolin_INCLUDE_DIRS}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+
+add_library(FeaturesLib
+        visual_mapping_localization/learned_features_inference/src/interface.cpp
+        visual_mapping_localization/learned_features_inference/src/extractor.cpp
+        visual_mapping_localization/learned_features_inference/src/utils.cpp)
+
+target_link_libraries(FeaturesLib openvino::runtime ${OpenCV_LIBS})
+
+add_library(VisualMappingLib
+        visual_mapping_localization/src/camera.cpp
+        visual_mapping_localization/src/matcher.cpp
+        visual_mapping_localization/src/triangulation.cpp
+        visual_mapping_localization/src/frame.cpp
+        visual_mapping_localization/src/bundle_adjustment.cpp
+        visual_mapping_localization/src/visualization.cpp
+        visual_mapping_localization/src/detection.cpp
+        visual_mapping_localization/src/map_point.cpp
+        visual_mapping_localization/src/mapping.cpp
+        visual_mapping_localization/src/map_save.cpp)
+
+target_link_libraries(
+        VisualMappingLib
+        ${OpenCV_LIBS}
+        ${EIGEN3_LIBS}
+        ${Pangolin_LIBRARIES}
+        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+        FeaturesLib
+)
+
+add_executable(VisualMapping visual_mapping_localization/main.cpp)
+
+target_link_libraries(VisualMapping
+        FeaturesLib
+        VisualMappingLib
+)
 
 add_library(${PROJECT_NAME} SHARED
 src/System.cc
