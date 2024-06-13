@@ -313,7 +313,8 @@ public:
     const long unsigned int mnFrameId;
 
     const double mTimeStamp;
-
+    const string mTimeStampStr;
+    
     // Grid (to speed up feature matching)
     const int mnGridCols;
     const int mnGridRows;

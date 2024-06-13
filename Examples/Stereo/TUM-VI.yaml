@@ -45,11 +45,13 @@ Camera.width: 512
 Camera.height: 512
 
 # Lapping area between images
-Camera.overlappingBegin: 0
-Camera.overlappingEnd: 511
+Camera1.overlappingBegin: 0
+Camera1.overlappingEnd: 511
 
 Camera2.overlappingBegin: 0
 Camera2.overlappingEnd: 511
+
+System.thFarPoints: 20.0  # In TUM outdoors, we ignore points too far away
 
 # Camera frames per second
 Camera.fps: 20
@@ -65,7 +67,7 @@ Stereo.ThDepth: 40.0
 #--------------------------------------------------------------------------------------------
 
 # ORB Extractor: Number of features per image
-ORBextractor.nFeatures: 1000
+ORBextractor.nFeatures: 1200
 
 # ORB Extractor: Scale factor between levels in the scale pyramid
 ORBextractor.scaleFactor: 1.2
