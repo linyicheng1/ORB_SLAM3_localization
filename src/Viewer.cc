@@ -53,6 +53,9 @@ Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer
     }
 
     mbStopTrack = false;
+
+    mapping = pTracking->mapping;
+
 }
 
 void Viewer::newParameterLoader(Settings *settings) {
@@ -314,6 +317,28 @@ void Viewer::Run()
             mpMapDrawer->DrawKeyFrames(menuShowKeyFrames,menuShowGraph, menuShowInertialGraph, menuShowOptLba);
         if(menuShowPoints)
             mpMapDrawer->DrawMapPoints();
+        // add
+
+        for (int i = 0;i < mapping->map.max_id; i++) {
+            if (mapping->map.map_points.find(i) == mapping->map.map_points.end()) {
+                continue;
+            }
+            auto map_point = mapping->map.map_points.at(i);
+            if (map_point != nullptr) {
+                Eigen::Vector3d p = map_point->x3D;
+//                    std::cout<<"p: "<<p.transpose()<<std::endl;
+                glPointSize(2);
+//                if (map_point->frame_ids.size() > 1) {
+//                    glColor3f(1.0f,0.0f,0.0f);
+//                } else {
+                glColor3f(0.0f,0.5f,0.5f);
+//                }
+
+                glBegin(GL_POINTS);
+                glVertex3f((float)p[0],(float)p[1],(float)p[2]);
+                glEnd();
+            }
+        }
 
         pangolin::FinishFrame();
 

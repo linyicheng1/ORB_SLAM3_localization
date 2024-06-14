@@ -32,6 +32,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
+#include "map_save.h"
 
 namespace ORB_SLAM3
 {
@@ -222,6 +223,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+
+    // add
+    mapping = std::make_shared<VISUAL_MAPPING::Mapping>();
+    VISUAL_MAPPING::MapSaver mapSaver;
+    std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>> frames;
+    mapSaver.load_map("/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/cmake-build-debug/map.txt", frames, mapping->map);
+    mpTracker->mapping = mapping;
 
     //usleep(10*1000*1000);
 

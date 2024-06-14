@@ -28,6 +28,9 @@
 
 #include <mutex>
 
+// add
+#include "mapping.h"
+
 namespace ORB_SLAM3
 {
 
@@ -93,6 +96,9 @@ private:
     std::mutex mMutexStop;
 
     bool mbStopTrack;
+
+    // add
+    std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
 
 };
 

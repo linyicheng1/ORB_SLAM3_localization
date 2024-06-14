@@ -42,6 +42,9 @@
 #include <mutex>
 #include <unordered_set>
 
+// add
+#include "mapping.h"
+
 namespace ORB_SLAM3
 {
 
@@ -176,6 +179,9 @@ public:
 
     bool mbWriteStats;
 
+    // add
+    std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
+
 #ifdef REGISTER_TIMES
     void LocalMapStats2File();
     void TrackStats2File();
@@ -273,7 +279,7 @@ protected:
     KeyFrame* mpReferenceKF;
     std::vector<KeyFrame*> mvpLocalKeyFrames;
     std::vector<MapPoint*> mvpLocalMapPoints;
-    
+
     // System
     System* mpSystem;
     

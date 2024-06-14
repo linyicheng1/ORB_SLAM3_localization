@@ -151,7 +151,21 @@ include/GeometricTools.h
 include/TwoViewReconstruction.h
 include/SerializationUtils.h
 include/Config.h
-include/Settings.h)
+include/Settings.h
+visual_mapping_localization/learned_features_inference/src/interface.cpp
+visual_mapping_localization/learned_features_inference/src/extractor.cpp
+visual_mapping_localization/learned_features_inference/src/utils.cpp
+visual_mapping_localization/src/camera.cpp
+visual_mapping_localization/src/matcher.cpp
+visual_mapping_localization/src/triangulation.cpp
+visual_mapping_localization/src/frame.cpp
+visual_mapping_localization/src/bundle_adjustment.cpp
+visual_mapping_localization/src/visualization.cpp
+visual_mapping_localization/src/detection.cpp
+visual_mapping_localization/src/map_point.cpp
+visual_mapping_localization/src/mapping.cpp
+visual_mapping_localization/src/map_save.cpp
+)
 
 add_subdirectory(Thirdparty/g2o)
 
@@ -161,6 +175,7 @@ ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+openvino::runtime
 -lboost_serialization
 -lcrypto
 )

@@ -40,6 +40,8 @@
 #include "ImuTypes.h"
 #include "Settings.h"
 
+// add
+#include "mapping.h"
 
 namespace ORB_SLAM3
 {
@@ -262,6 +264,9 @@ private:
     string mStrVocabularyFilePath;
 
     Settings* settings_;
+
+    // add
+    std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
 };
 
 }// namespace ORB_SLAM
