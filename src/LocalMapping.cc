@@ -27,6 +27,8 @@
 #include<mutex>
 #include<chrono>
 
+#include "bundle_adjustment.h"
+
 namespace ORB_SLAM3
 {
 
@@ -155,6 +157,12 @@ void LocalMapping::Run()
                         b_doneLBA = true;
                     }
 
+                } else {
+                    VISUAL_MAPPING::BundleAdjustment ba;
+                    ba.optimize_pose(mpCurrentKeyFrame->learned_map_frame);
+                    Eigen::Matrix4d T = mpCurrentKeyFrame->learned_map_frame->get_T();
+                    Sophus::SE3<float> SE_T(T.cast<float>());
+                    mpCurrentKeyFrame->SetInvPose(SE_T);
                 }
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
@@ -335,6 +343,27 @@ void LocalMapping::ProcessNewKeyFrame()
 
     // Insert Keyframe in Map
     mpAtlas->AddKeyFrame(mpCurrentKeyFrame);
+
+    // add
+
+    Eigen::Matrix4d init_T = mpCurrentKeyFrame->learned_map_frame->get_T();
+    std::vector<int> close_frame_ids = sort_frames_by_distance(mapping->map.frames_, init_T);
+    std::cout<<" init_T "<<init_T<<std::endl;
+    std::cout<<" close_frame_ids "<<close_frame_ids[0]<<std::endl;
+
+    for (int i = 0;i < 5;i ++) {
+        std::shared_ptr<VISUAL_MAPPING::Frame> c_frame = mapping->map.frames_[close_frame_ids[i]];
+        mpCurrentKeyFrame->learned_map_frame->map_points.resize(mpCurrentKeyFrame->learned_map_frame->features_uv.size(), nullptr);
+        // 3.1 KNN match
+        std::vector<std::pair<int, int>> matches = matcher.match_knn(*mpCurrentKeyFrame->learned_map_frame, *c_frame);
+        int matches_num = 0;
+        for (auto &match : matches) {
+            if (c_frame->map_points[match.second] != nullptr) {
+                mpCurrentKeyFrame->learned_map_frame->map_points[match.first] = c_frame->map_points[match.second];
+                matches_num ++;
+            }
+        }
+    }
 }
 
 void LocalMapping::EmptyQueue()
@@ -1517,6 +1546,25 @@ double LocalMapping::GetCurrKFTime()
 KeyFrame* LocalMapping::GetCurrKF()
 {
     return mpCurrentKeyFrame;
+}
+
+std::vector<int>
+LocalMapping::sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix3d R, Eigen::Vector3d t) {
+    std::vector<int> sorted_ids;
+    std::vector<double> sorted_distances;
+    sorted_ids.reserve(frames.size());
+    sorted_distances.reserve(frames.size());
+    for (const auto& frame : frames) {
+        Eigen::Vector3d t_ = frame->get_t();
+        Eigen::Vector3d t_diff = t_ - t;
+        double distance = t_diff.norm();
+        sorted_distances.push_back(distance);
+        sorted_ids.push_back(frame->id);
+    }
+    std::sort(sorted_ids.begin(), sorted_ids.end(), [&sorted_distances](int i, int j) {
+        return sorted_distances[i] < sorted_distances[j];
+    });
+    return sorted_ids;
 }
 
 } //namespace ORB_SLAM

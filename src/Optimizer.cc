@@ -1223,6 +1223,24 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             maxKFid=pKFi->mnId;
         // DEBUG LBA
         pCurrentMap->msOptKFs.insert(pKFi->mnId);
+
+        // add map constraints
+        std::shared_ptr<VISUAL_MAPPING::Frame> learned_map_frame = pKFi->learned_map_frame;
+        for (int i = 0;i < learned_map_frame->map_points.size(); i++) {
+            if (learned_map_frame->map_points[i] == nullptr) {
+                continue;
+            }
+            auto* e = new EdgeSE3ProjectXYZOnlyPose();
+            e->setVertex(0, vSE3);
+            e->setMeasurement(learned_map_frame->features_uv[i]);
+            e->setInformation(Eigen::Matrix2d::Identity());
+            auto* rk = new g2o::RobustKernelHuber;
+            rk->setDelta(1.0);
+            e->setRobustKernel(rk);
+            e->pCamera = pKFi->mpCamera;
+            e->Xw = learned_map_frame->map_points[i]->x3D;
+            optimizer.addEdge(e);
+        }
     }
     num_OptKF = lLocalKeyFrames.size();
 

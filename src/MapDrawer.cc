@@ -464,4 +464,16 @@ void MapDrawer::GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M, pangolin
     MOw.m[13] = Twc(1,3);
     MOw.m[14] = Twc(2,3);
 }
+    KeyFrame* MapDrawer::GetCurrentKF() {
+        Map* pActiveMap = mpAtlas->GetCurrentMap();
+        if(!pActiveMap)
+            return nullptr;
+        const vector<KeyFrame*> vpKFs = pActiveMap->GetAllKeyFrames();
+        auto max_id = pActiveMap->GetMaxKFid();
+        for (auto vpKF : vpKFs) {
+            if (vpKF->mnId == max_id) {
+                return vpKF;
+            }
+        }
+    }
 } //namespace ORB_SLAM

@@ -318,7 +318,8 @@ void LoopClosing::InsertKeyFrame(KeyFrame *pKF)
 bool LoopClosing::CheckNewKeyFrames()
 {
     unique_lock<mutex> lock(mMutexLoopQueue);
-    return(!mlpLoopKeyFrameQueue.empty());
+    return false;
+//    return(!mlpLoopKeyFrameQueue.empty());
 }
 
 bool LoopClosing::NewDetectCommonRegions()

@@ -29,6 +29,10 @@
 
 #include <mutex>
 
+// add
+#include "frame.h"
+#include "matcher.h"
+#include "mapping.h"
 
 namespace ORB_SLAM3
 {
@@ -111,6 +115,13 @@ public:
     bool mbFarPoints;
     float mThFarPoints;
 
+    VISUAL_MAPPING::Matcher matcher;
+    std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
+
+    std::vector<int> sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix3d R, Eigen::Vector3d t);
+    std::vector<int> sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix4d T) {
+        return sort_frames_by_distance(frames, T.block<3, 3>(0, 0), T.block<3, 1>(0, 3));
+    }
 #ifdef REGISTER_TIMES
     vector<double> vdKFInsert_ms;
     vector<double> vdMPCulling_ms;

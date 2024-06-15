@@ -230,6 +230,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>> frames;
     mapSaver.load_map("/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/cmake-build-debug/map.txt", frames, mapping->map);
     mpTracker->mapping = mapping;
+    mpLocalMapper->mapping = mapping;
 
     //usleep(10*1000*1000);
 

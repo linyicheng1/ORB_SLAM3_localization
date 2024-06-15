@@ -42,7 +42,7 @@ KeyFrame::KeyFrame():
 
 }
 
-KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
+KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB, std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detector):
     bImu(pMap->isImuInitialized()), mnFrameId(F.mnId),  mTimeStamp(F.mTimeStamp), mTimeStampStr(F.mTimeStampStr), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
     mfGridElementWidthInv(F.mfGridElementWidthInv), mfGridElementHeightInv(F.mfGridElementHeightInv),
     mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0), mnBALocalForMerge(0),
@@ -62,6 +62,28 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     mvKeysRight(F.mvKeysRight), NLeft(F.Nleft), NRight(F.Nright), mTrl(F.GetRelativePoseTrl()), mnNumberOfOpt(0), mbHasVelocity(false)
 {
     mnId=nNextId++;
+
+    Eigen::Matrix4d init_T = Eigen::Matrix4d::Identity();
+    init_T.block<3, 3>(0, 0) = F.GetRwc().cast<double>();
+    init_T.block<3, 1>(0, 3) = F.GetOw().cast<double>();
+
+    cv::Mat img;
+    if (F.imgLeft.channels() == 1){
+        cv::cvtColor(F.imgLeft, img, cv::COLOR_GRAY2BGR);
+    } else {
+        img = F.imgLeft;
+    }
+
+    auto param2 = new VISUAL_MAPPING::Camera::KannalaBrandt8Params(fx, fy, cx, cy,
+                                                                   mDistCoef.at<float>(0),
+                                                                   mDistCoef.at<float>(1),
+                                                                   mDistCoef.at<float>(2),
+                                                                   mDistCoef.at<float>(3));
+    VISUAL_MAPPING::Camera camera;
+    camera.setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
+    camera.setKannalaBrandt8Params(*param2);
+    learned_map_frame = std::make_shared<VISUAL_MAPPING::Frame>(mnId, detector, init_T,
+                                                                img, &camera);
 
     mGrid.resize(mnGridCols);
     if(F.Nleft != -1)  mGridRight.resize(mnGridCols);
@@ -113,6 +135,21 @@ void KeyFrame::SetPose(const Sophus::SE3f &Tcw)
     mTcw = Tcw;
     mRcw = mTcw.rotationMatrix();
     mTwc = mTcw.inverse();
+    mRwc = mTwc.rotationMatrix();
+
+    if (mImuCalib.mbIsSet) // TODO Use a flag instead of the OpenCV matrix
+    {
+        mOwb = mRwc * mImuCalib.mTcb.translation() + mTwc.translation();
+    }
+}
+
+void KeyFrame::SetInvPose(const Sophus::SE3<float> &Twc)
+{
+    unique_lock<mutex> lock(mMutexPose);
+
+    mTcw = Twc.inverse();
+    mRcw = mTcw.rotationMatrix();
+    mTwc = Twc;
     mRwc = mTwc.rotationMatrix();
 
     if (mImuCalib.mbIsSet) // TODO Use a flag instead of the OpenCV matrix

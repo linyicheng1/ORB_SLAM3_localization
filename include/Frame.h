@@ -162,7 +162,13 @@ public:
         return mbHasVelocity;
     }
 
+    void SetInvPose(const Sophus::SE3<float> &Twc) {
+        mTcw = Twc.inverse();
 
+        UpdatePoseMatrices();
+        mbIsSet = true;
+        mbHasPose = true;
+    }
 
 private:
     //Sophus/Eigen migration

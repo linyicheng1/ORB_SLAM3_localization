@@ -38,6 +38,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
 
+#include "frame.h"
 
 namespace ORB_SLAM3
 {
@@ -195,10 +196,11 @@ class KeyFrame
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     KeyFrame();
-    KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
+    KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB, std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detector);
 
     // Pose functions
     void SetPose(const Sophus::SE3f &Tcw);
+    void SetInvPose(const Sophus::SE3<float> &Twc);
     void SetVelocity(const Eigen::Vector3f &Vw_);
 
     Sophus::SE3f GetPose();
@@ -422,6 +424,7 @@ public:
     std::vector <KeyFrame*> mvpLoopCandKFs;
     std::vector <KeyFrame*> mvpMergeCandKFs;
 
+    std::shared_ptr<VISUAL_MAPPING::Frame> learned_map_frame;
     //bool mbHasHessian;
     //cv::Mat mHessianPose;
 

@@ -181,7 +181,7 @@ public:
 
     // add
     std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
-
+    std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detection;
 #ifdef REGISTER_TIMES
     void LocalMapStats2File();
     void TrackStats2File();

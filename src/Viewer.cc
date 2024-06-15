@@ -21,6 +21,7 @@
 #include <pangolin/pangolin.h>
 
 #include <mutex>
+#include "frame.h"
 
 namespace ORB_SLAM3
 {
@@ -318,6 +319,28 @@ void Viewer::Run()
         if(menuShowPoints)
             mpMapDrawer->DrawMapPoints();
         // add
+        KeyFrame* kf = mpMapDrawer->GetCurrentKF();
+        std::shared_ptr<VISUAL_MAPPING::Frame> frame = kf->learned_map_frame;
+        Eigen::Vector3d t = frame->get_t();
+        // draw connected map points
+        for (const auto &mp : frame->map_points) {
+            if (mp != nullptr) {
+                int id = mp->id;
+                if (mapping->map.map_points.find(id) != mapping->map.map_points.end()) {
+                    auto map_point = mapping->map.map_points.at(id);
+                    Eigen::Vector3d p = map_point->x3D;
+                    if (p.z() < 0)
+                        continue;
+                    glLineWidth(1);
+                    glColor3f(0.5f,0.5f,0.9f);
+
+                    glBegin(GL_LINES);
+                    glVertex3f((float)t[0],(float)t[1],(float)t[2]);
+                    glVertex3f((float)p[0],(float)p[1],(float)p[2]);
+                    glEnd();
+                }
+            }
+        }
 
         for (int i = 0;i < mapping->map.max_id; i++) {
             if (mapping->map.map_points.find(i) == mapping->map.map_points.end()) {
