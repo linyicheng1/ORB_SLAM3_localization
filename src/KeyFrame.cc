@@ -42,6 +42,7 @@ KeyFrame::KeyFrame():
 
 }
 
+auto camera = new VISUAL_MAPPING::Camera();
 KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB, std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detector):
     bImu(pMap->isImuInitialized()), mnFrameId(F.mnId),  mTimeStamp(F.mTimeStamp), mTimeStampStr(F.mTimeStampStr), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
     mfGridElementWidthInv(F.mfGridElementWidthInv), mfGridElementHeightInv(F.mfGridElementHeightInv),
@@ -75,15 +76,15 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB, std::shared_ptr
     }
 
     auto param2 = new VISUAL_MAPPING::Camera::KannalaBrandt8Params(fx, fy, cx, cy,
-                                                                   mDistCoef.at<float>(0),
-                                                                   mDistCoef.at<float>(1),
-                                                                   mDistCoef.at<float>(2),
-                                                                   mDistCoef.at<float>(3));
-    VISUAL_MAPPING::Camera camera;
-    camera.setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
-    camera.setKannalaBrandt8Params(*param2);
+                                                                   0.33333333333,
+                                                                   0.13333333333,
+                                                                   0.05396825396,
+                                                                   0.02186948853);
+//    std::cout<<"fx: "<<fx<<" fy: "<<fy<<" cx: "<<cx<<" cy: "<<cy<<" k1: "<<mDistCoef.at<float>(0)<<" k2: "<<mDistCoef.at<float>(1)<<" k3: "<<mDistCoef.at<float>(2)<<" k4: "<<mDistCoef.at<float>(3)<<std::endl;
+    camera->setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
+    camera->setKannalaBrandt8Params(*param2);
     learned_map_frame = std::make_shared<VISUAL_MAPPING::Frame>(mnId, detector, init_T,
-                                                                img, &camera);
+                                                                img, camera);
 
     mGrid.resize(mnGridCols);
     if(F.Nleft != -1)  mGridRight.resize(mnGridCols);

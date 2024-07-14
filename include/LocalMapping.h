@@ -117,6 +117,9 @@ public:
 
     VISUAL_MAPPING::Matcher matcher;
     std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
+    std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detection;
+    Eigen::Quaterniond Qwo;
+    Eigen::Vector3d Pwo;
 
     std::vector<int> sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix3d R, Eigen::Vector3d t);
     std::vector<int> sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix4d T) {

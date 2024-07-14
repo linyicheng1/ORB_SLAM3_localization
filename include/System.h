@@ -188,6 +188,8 @@ public:
 
     float GetImageScale();
 
+    void GetLocal2Global(Eigen::Matrix3d& R, Eigen::Vector3d& t);
+
 #ifdef REGISTER_TIMES
     void InsertRectTime(double& time);
     void InsertResizeTime(double& time);

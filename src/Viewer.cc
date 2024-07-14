@@ -319,18 +319,23 @@ void Viewer::Run()
         if(menuShowPoints)
             mpMapDrawer->DrawMapPoints();
         // add
+        Eigen::Matrix3d Rwo = Eigen::Matrix3d::Identity();
+        Eigen::Vector3d two = Eigen::Vector3d::Zero();
+        mpSystem->GetLocal2Global(Rwo, two);
+        Eigen::Matrix3d Row = Rwo.transpose();
+        Eigen::Vector3d tow = -Row * two;
+
         KeyFrame* kf = mpMapDrawer->GetCurrentKF();
         std::shared_ptr<VISUAL_MAPPING::Frame> frame = kf->learned_map_frame;
-        Eigen::Vector3d t = frame->get_t();
+        Eigen::Vector3d t = Row * frame->get_t() + tow;
         // draw connected map points
         for (const auto &mp : frame->map_points) {
             if (mp != nullptr) {
                 int id = mp->id;
                 if (mapping->map.map_points.find(id) != mapping->map.map_points.end()) {
                     auto map_point = mapping->map.map_points.at(id);
-                    Eigen::Vector3d p = map_point->x3D;
-                    if (p.z() < 0)
-                        continue;
+                    Eigen::Vector3d p = Row * map_point->x3D + tow;
+
                     glLineWidth(1);
                     glColor3f(0.5f,0.5f,0.9f);
 
@@ -348,7 +353,7 @@ void Viewer::Run()
             }
             auto map_point = mapping->map.map_points.at(i);
             if (map_point != nullptr) {
-                Eigen::Vector3d p = map_point->x3D;
+                Eigen::Vector3d p = Row * map_point->x3D + tow;
 //                    std::cout<<"p: "<<p.transpose()<<std::endl;
                 glPointSize(2);
 //                if (map_point->frame_ids.size() > 1) {

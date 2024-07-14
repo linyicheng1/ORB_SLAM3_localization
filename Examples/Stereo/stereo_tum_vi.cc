@@ -126,11 +126,18 @@ int main(int argc, char **argv)
         proccIm = 0;
         for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
         {
-
+            if (ni < 500)
+                continue;
             // Read image from file
             imLeft = cv::imread(vstrImageLeftFilenames[seq][ni],cv::IMREAD_GRAYSCALE);
             imRight = cv::imread(vstrImageRightFilenames[seq][ni],cv::IMREAD_GRAYSCALE);
 
+            if (imLeft.empty() || imRight.empty())
+            {
+                cerr << endl << "Failed to load image at: "
+                     <<  vstrImageLeftFilenames[seq][ni] << endl;
+                continue;
+            }
             if(imageScale != 1.f)
             {
 #ifdef REGISTER_TIMES
@@ -200,7 +207,8 @@ int main(int argc, char **argv)
                 T = vTimestampsCam[seq][ni+1]-tframe;
             else if(ni>0)
                 T = tframe-vTimestampsCam[seq][ni-1];
-
+            usleep(0.05*1e6); // 1e6
+//            cv::waitKey(0);
             if(ttrack<T)
                 usleep((T-ttrack)*1e6); // 1e6
         }
@@ -228,8 +236,8 @@ int main(int argc, char **argv)
     {
         const string kf_file =  "kf_" + string(argv[argc-1]) + ".txt";
         const string f_file =  "f_" + string(argv[argc-1]) + ".txt";
-        SLAM.SaveTrajectoryEuRoC(f_file);
-        SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file);
+//        SLAM.SaveTrajectoryEuRoC(f_file);
+//        SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file);
     }
     else
     {

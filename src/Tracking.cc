@@ -120,7 +120,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     detection = std::make_shared<VISUAL_MAPPING::FeatureDetection>(
             VISUAL_MAPPING::SuperPoint,
             "/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/visual_mapping_localization/learned_features_inference/weight/",
-            8, 500, 512, 512);
+            8, 1000, 800, 400);
 
 #ifdef REGISTER_TIMES
     vdRectStereo_ms.clear();
@@ -3165,7 +3165,7 @@ bool Tracking::NeedNewKeyFrame()
     const bool c1c = mSensor!=System::MONOCULAR && mSensor!=System::IMU_MONOCULAR && mSensor!=System::IMU_STEREO && mSensor!=System::IMU_RGBD && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     const bool c2 = (((mnMatchesInliers<nRefMatches*thRefRatio || bNeedToInsertClose)) && mnMatchesInliers>15);
-
+    const bool c_new = (mnMatchesInliers<350);
     //std::cout << "NeedNewKF: c1a=" << c1a << "; c1b=" << c1b << "; c1c=" << c1c << "; c2=" << c2 << std::endl;
     // Temporal condition for Inertial cases
     bool c3 = false;
@@ -3189,7 +3189,7 @@ bool Tracking::NeedNewKeyFrame()
     else
         c4=false;
 
-    if(((c1a||c1b||c1c) && c2)||c3 ||c4)
+    if(((c1a||c1b||c1c) && (c2||c_new))||c3 ||c4)
     {
         // If the mapping accepts keyframes, insert keyframe.
         // Otherwise send a signal to interrupt BA

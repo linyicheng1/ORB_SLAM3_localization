@@ -99,6 +99,18 @@ public:
     void static InertialOptimization(Map *pMap, Eigen::Matrix3d &Rwg, double &scale);
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    // local to global
+    static Eigen::Quaterniond Qow;
+    static Eigen::Vector3d Pow;
+
+    void static update(const Eigen::Vector3d& p, const Eigen::Quaterniond& a)
+    {
+        float k =  0.9;
+        Pow = Pow*k + p * (1 - k);
+        Qow = Qow.coeffs() * k  + a.coeffs() * (1 - k);
+        Qow = Qow.normalized();
+    }
 };
 
 } //namespace ORB_SLAM3

@@ -82,7 +82,7 @@ target_link_libraries(
         ${OpenCV_LIBS}
         ${EIGEN3_LIBS}
         ${Pangolin_LIBRARIES}
-        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+        ${PROJECT_SOURCE_DIR}/visual_mapping_localization/Thirdparty/g2o/lib/libg2o.so
         FeaturesLib
 )
 
@@ -174,7 +174,7 @@ ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${PROJECT_SOURCE_DIR}/visual_mapping_localization/Thirdparty/g2o/lib/libg2o.so
 openvino::runtime
 -lboost_serialization
 -lcrypto

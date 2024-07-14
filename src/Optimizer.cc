@@ -44,6 +44,9 @@
 
 namespace ORB_SLAM3
 {
+    Eigen::Quaterniond Optimizer::Qow = Eigen::Quaterniond(1,0,0,0);
+    Eigen::Vector3d Optimizer::Pow = Eigen::Vector3d(0,0,0);
+
 bool sortByVal(const pair<MapPoint*, int> &a, const pair<MapPoint*, int> &b)
 {
     return (a.second < b.second);
@@ -1223,24 +1226,6 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             maxKFid=pKFi->mnId;
         // DEBUG LBA
         pCurrentMap->msOptKFs.insert(pKFi->mnId);
-
-        // add map constraints
-        std::shared_ptr<VISUAL_MAPPING::Frame> learned_map_frame = pKFi->learned_map_frame;
-        for (int i = 0;i < learned_map_frame->map_points.size(); i++) {
-            if (learned_map_frame->map_points[i] == nullptr) {
-                continue;
-            }
-            auto* e = new EdgeSE3ProjectXYZOnlyPose();
-            e->setVertex(0, vSE3);
-            e->setMeasurement(learned_map_frame->features_uv[i]);
-            e->setInformation(Eigen::Matrix2d::Identity());
-            auto* rk = new g2o::RobustKernelHuber;
-            rk->setDelta(1.0);
-            e->setRobustKernel(rk);
-            e->pCamera = pKFi->mpCamera;
-            e->Xw = learned_map_frame->map_points[i]->x3D;
-            optimizer.addEdge(e);
-        }
     }
     num_OptKF = lLocalKeyFrames.size();
 
@@ -1296,13 +1281,16 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     int nPoints = 0;
 
     int nEdges = 0;
-
+    int max_id = maxKFid;
     for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
         MapPoint* pMP = *lit;
         g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
         vPoint->setEstimate(pMP->GetWorldPos().cast<double>());
         int id = pMP->mnId+maxKFid+1;
+        if (id > max_id) {
+            max_id = id;
+        }
         vPoint->setId(id);
         vPoint->setMarginalized(true);
         optimizer.addVertex(vPoint);
@@ -1421,6 +1409,42 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
     num_edges = nEdges;
 
+    g2o::VertexSE3Expmap * vGlobal = new g2o::VertexSE3Expmap();
+    vGlobal->setEstimate(g2o::SE3Quat(Qow, Pow));
+    vGlobal->setId(max_id + 1);
+    vGlobal->setFixed(false);
+    optimizer.addVertex(vGlobal);
+
+    for(list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin(), lend=lLocalKeyFrames.end(); lit!=lend; lit++) {
+        // add map constraints
+        KeyFrame* pKFi = *lit;
+        std::vector<EdgeSE3ProjectXYZOnlyPoseToBody*> map_edges;
+        std::shared_ptr<VISUAL_MAPPING::Frame> learned_map_frame = pKFi->learned_map_frame;
+        for (int i = 0;i < learned_map_frame->map_points.size(); i++) {
+            if (learned_map_frame->map_points[i] == nullptr) {
+                continue;
+            }
+            auto* e = new EdgeSE3ProjectXYZOnlyPoseToBody();
+            e->setVertex(0, vGlobal);
+            e->setMeasurement(learned_map_frame->features_uv[i]);
+            e->setInformation(Eigen::Matrix2d::Identity() * 0.05);
+            auto* rk = new g2o::RobustKernelHuber;
+            rk->setDelta(1.0);
+            e->setRobustKernel(rk);
+            e->pCamera = pKFi->mpCamera;
+            e->Xw = learned_map_frame->map_points[i]->x3D;
+            Sophus::SE3<float> Tcw = pKFi->GetPose();
+            e->mTrl = g2o::SE3Quat(Tcw.unit_quaternion().cast<double>(), Tcw.translation().cast<double>());
+            map_edges.push_back(e);
+        }
+
+//        if (map_edges.size() > 40) {
+//            for (const auto& e:map_edges) {
+//                optimizer.addEdge(e);
+//            }
+//        }
+    }
+
     if(pbStopFlag)
         if(*pbStopFlag)
             return;
@@ -1511,6 +1535,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         pMP->SetWorldPos(vPoint->estimate().cast<float>());
         pMP->UpdateNormalAndDepth();
     }
+
+    // global
+    g2o::SE3Quat SE3quat = vGlobal->estimate();
+    update(SE3quat.translation(), SE3quat.rotation());
 
     pMap->IncreaseChangeIndex();
 }

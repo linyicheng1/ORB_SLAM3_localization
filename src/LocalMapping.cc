@@ -156,13 +156,8 @@ void LocalMapping::Run()
                         Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
                         b_doneLBA = true;
                     }
-
-                } else {
-                    VISUAL_MAPPING::BundleAdjustment ba;
-                    ba.optimize_pose(mpCurrentKeyFrame->learned_map_frame);
-                    Eigen::Matrix4d T = mpCurrentKeyFrame->learned_map_frame->get_T();
-                    Sophus::SE3<float> SE_T(T.cast<float>());
-                    mpCurrentKeyFrame->SetInvPose(SE_T);
+//                    Qow = Optimizer::Qow;
+//                    Pow = Optimizer::Pow;
                 }
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
@@ -303,6 +298,43 @@ bool LocalMapping::CheckNewKeyFrames()
     return(!mlNewKeyFrames.empty());
 }
 
+std::vector<std::string> read_img_path_kf(const std::string& path1, const std::string& list) {
+    std::ifstream file;
+    file.open(list);
+    std::vector<std::string> img_list;
+    std::string line;
+    while (std::getline(file, line, ' ')) {
+        img_list.emplace_back(path1 + line + ".png");
+        Eigen::Matrix4d T_;
+        Eigen::Vector3d t;
+        Eigen::Quaterniond q;
+        for (int i = 0; i < 6; i++) {
+            std::getline(file, line, ' ');
+            if (i == 0) {
+                t(0) = std::stod(line);
+            } else if (i == 1) {
+                t(1) = std::stod(line);
+            } else if (i == 2) {
+                t(2) = std::stod(line);
+            } else if (i == 3) {
+                q.x() = std::stod(line);
+            } else if (i == 4) {
+                q.y() = std::stod(line);
+            } else if (i == 5) {
+                q.z() = std::stod(line);
+            }
+        }
+        std::getline(file, line, '\n');
+        q.w() = std::stod(line);
+        T_.block<3, 3>(0, 0) = q.toRotationMatrix();
+        T_.block<3, 1>(0, 3) = t;
+        T_.row(3) << 0, 0, 0, 1;
+    }
+    return img_list;
+}
+#define IMAGE_WIDTH 800
+#define IMAGE_HEIGHT 400
+
 void LocalMapping::ProcessNewKeyFrame()
 {
     {
@@ -347,23 +379,169 @@ void LocalMapping::ProcessNewKeyFrame()
     // add
 
     Eigen::Matrix4d init_T = mpCurrentKeyFrame->learned_map_frame->get_T();
-    std::vector<int> close_frame_ids = sort_frames_by_distance(mapping->map.frames_, init_T);
-    std::cout<<" init_T "<<init_T<<std::endl;
-    std::cout<<" close_frame_ids "<<close_frame_ids[0]<<std::endl;
+    Eigen::Matrix4d Two = Eigen::Matrix4d::Identity();
+    Two.block<3, 3>(0, 0) = Qwo.toRotationMatrix();
+    Two.block<3, 1>(0, 3) = Pwo;
+    Eigen::Matrix4d Twc = Two * init_T;
+    mpCurrentKeyFrame->learned_map_frame->set_T(Twc);
+    std::vector<int> close_frame_ids = sort_frames_by_distance(mapping->map.frames_, Twc);
+    std::cout<<"init Two "<<Two<<std::endl;
+//    std::cout<<" close_frame_ids "<<close_frame_ids[0]<<std::endl;
 
-    for (int i = 0;i < 5;i ++) {
+    int max_matches = 100;
+    int matches_num = 0;
+    mpCurrentKeyFrame->learned_map_frame->map_points.resize(mpCurrentKeyFrame->learned_map_frame->get_features_uv().size(), nullptr);
+
+    // 1. try to match with the closest frame
+    for (int i = 0;i < 3; i++) {
         std::shared_ptr<VISUAL_MAPPING::Frame> c_frame = mapping->map.frames_[close_frame_ids[i]];
-        mpCurrentKeyFrame->learned_map_frame->map_points.resize(mpCurrentKeyFrame->learned_map_frame->features_uv.size(), nullptr);
         // 3.1 KNN match
-        std::vector<std::pair<int, int>> matches = matcher.match_knn(*mpCurrentKeyFrame->learned_map_frame, *c_frame);
+        std::vector<std::pair<int, int>> matches = matcher.match_knn(*c_frame, *mpCurrentKeyFrame->learned_map_frame);
         int matches_num = 0;
         for (auto &match : matches) {
-            if (c_frame->map_points[match.second] != nullptr) {
-                mpCurrentKeyFrame->learned_map_frame->map_points[match.first] = c_frame->map_points[match.second];
+            if (c_frame->map_points[match.first] != nullptr) {
+                mpCurrentKeyFrame->learned_map_frame->map_points[match.second] = c_frame->map_points[match.first];
                 matches_num ++;
             }
         }
+        // 3.3 PNP
+        VISUAL_MAPPING::BundleAdjustment ba;
+        if (matches_num > 30) {
+            mpCurrentKeyFrame->learned_map_frame->set_T(Twc);
+            std::vector<bool> inliers = ba.optimize_pose(mpCurrentKeyFrame->learned_map_frame);
+//                std::cout<<"T " << tgt_frame->get_T() << std::endl;;
+            int inliers_num = 0;
+            for (int j = 0;j < inliers.size();j ++) {
+                if (!inliers[j]) {
+                    mpCurrentKeyFrame->learned_map_frame->map_points[j] = nullptr;
+                } else {
+                    inliers_num ++;
+                }
+            }
+            std::cout<<" first inliers: " << inliers_num << std::endl;
+        }
+
+        matches = matcher.match_re_projective(c_frame, mpCurrentKeyFrame->learned_map_frame);
+        for (auto &match : matches) {
+            if (c_frame->map_points[match.first] != nullptr &&
+                mpCurrentKeyFrame->learned_map_frame->map_points[match.second] == nullptr) {
+                mpCurrentKeyFrame->learned_map_frame->map_points[match.second] = c_frame->map_points[match.first];
+                matches_num ++;
+            }
+        }
+
+        if (matches_num > 30) {
+            mpCurrentKeyFrame->learned_map_frame->set_T(Twc);
+            std::vector<bool> inliers = ba.optimize_pose(mpCurrentKeyFrame->learned_map_frame);
+//                std::cout<<"T " << tgt_frame->get_T() << std::endl;;
+            int inliers_num = 0;
+            for (int j = 0;j < inliers.size();j ++) {
+                if (!inliers[j]) {
+                    mpCurrentKeyFrame->learned_map_frame->map_points[j] = nullptr;
+                } else {
+                    inliers_num ++;
+                }
+            }
+            if (inliers_num > 30) {
+                std::cout<<" second inliers: " << inliers_num << std::endl;
+                Eigen::Matrix4d T_ba = mpCurrentKeyFrame->learned_map_frame->get_T();
+                Eigen::Matrix4d T_wo = T_ba * init_T.inverse();
+                Qwo = Eigen::Quaterniond(T_wo.block<3, 3>(0, 0));
+                Pwo = T_wo.block<3, 1>(0, 3);
+                std::cout<<"update T_wo "<<T_wo<<std::endl;
+                break;
+            }
+        }
     }
+//    std::shared_ptr<VISUAL_MAPPING::Frame> c_frame = mapping->map.frames_[close_frame_ids[0]];
+//    std::vector<std::pair<int, int>> matches = matcher.match_re_projective(c_frame, mpCurrentKeyFrame->learned_map_frame);
+//    // not enough matches
+//    if (matches.size() < max_matches / 4) {
+//        matches = matcher.match_knn(*c_frame, *mpCurrentKeyFrame->learned_map_frame);
+//    }
+//    for (auto &match : matches) {
+//        if (c_frame->map_points[match.first] != nullptr) {
+//            mpCurrentKeyFrame->learned_map_frame->map_points[match.second] = c_frame->map_points[match.first];
+//            matches_num ++;
+//        }
+//    }
+//    std::cout<<" matches 1: "<<matches_num<<std::endl;
+//
+//    // 2. try to match with the other frame
+//    if (matches_num < max_matches) {
+//        for (int i = 1; i < 3; i++) {
+//            c_frame = mapping->map.frames_[close_frame_ids[i]];
+//            matches = matcher.match_re_projective(mpCurrentKeyFrame->learned_map_frame, c_frame);
+//            if (matches.size() < max_matches / 10) {
+//                matches = matcher.match_knn(*mpCurrentKeyFrame->learned_map_frame, *c_frame);
+//            }
+//            for (auto &match : matches) {
+//                if (c_frame->map_points[match.second] != nullptr &&
+//                    mpCurrentKeyFrame->learned_map_frame->map_points[match.first] == nullptr) {
+//                    mpCurrentKeyFrame->learned_map_frame->map_points[match.first] = c_frame->map_points[match.second];
+//                    matches_num ++;
+//                }
+//            }
+//            std::cout<<" matches 2: "<<matches_num<<std::endl;
+//            if (matches_num > max_matches) {
+//                break;
+//            }
+//        }
+//    }
+//
+//    // 3. bundle adjustment
+//    VISUAL_MAPPING::BundleAdjustment ba;
+//    if (matches_num > 60) {
+//        ba.optimize_pose(mpCurrentKeyFrame->learned_map_frame);
+//        Eigen::Matrix4d T_ba = mpCurrentKeyFrame->learned_map_frame->get_T();
+//        Eigen::Matrix4d T_ow = init_T.inverse() * T_ba;
+//        Qow = Eigen::Quaterniond(T_ow.block<3, 3>(0, 0));
+//        Pow = T_ow.block<3, 1>(0, 3);
+//    }
+
+    cv::Mat show = mpCurrentKeyFrame->learned_map_frame->image.clone();
+    if (show.channels() == 1) {
+        cv::cvtColor(show, show, cv::COLOR_GRAY2BGR);
+    }
+
+    for (int i = 0;i < mpCurrentKeyFrame->learned_map_frame->map_points.size(); i++) {
+        const auto& mp = mpCurrentKeyFrame->learned_map_frame->map_points[i];
+        if (mp != nullptr) {
+            Eigen::Vector3d P = mp->x3D;
+            Eigen::Vector3d P_ = mpCurrentKeyFrame->learned_map_frame->get_R().transpose() * (P - mpCurrentKeyFrame->learned_map_frame->get_t());
+            Eigen::Vector2d uv = mpCurrentKeyFrame->learned_map_frame->get_camera()->project(P_);
+            double error = (uv - mpCurrentKeyFrame->learned_map_frame->get_features_uv()[i]).norm();
+            cv::circle(show, cv::Point((int)uv[0], (int)uv[1]), 4, cv::Scalar(0, 255, 0), 2);
+            cv::circle(show, cv::Point((int)mpCurrentKeyFrame->learned_map_frame->get_features_uv()[i][0], (int)mpCurrentKeyFrame->learned_map_frame->get_features_uv()[i][1]), 2, cv::Scalar(0, 0, 255), 2);
+        }
+    }
+
+    std::string img_path_kf = "/home/vio/Datasets/4seasons/recording_2020-12-22_12-04-35/undistorted_images/cam0/";
+    std::string img_list_path_kf = "/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/Examples/Stereo/kf_corridor2_02.txt";
+    auto img_list_kf = read_img_path_kf(img_path_kf, img_list_path_kf);
+
+    cv::Mat img_kf = cv::imread(img_list_kf[close_frame_ids[0]+157]);
+
+    Eigen::Matrix4d I = mapping->map.frames_[close_frame_ids[0]]->get_T();
+    auto cam1 = mpCurrentKeyFrame->learned_map_frame->camera;
+    std::shared_ptr<VISUAL_MAPPING::Frame> kf_frame = std::make_shared<VISUAL_MAPPING::Frame>(0, detection, init_T, img_kf, img_kf, cam1, cam1, I);
+    std::vector<std::pair<int, int>> matches_kf = matcher.match_knn(*mpCurrentKeyFrame->learned_map_frame, *kf_frame);
+    cv::Mat img_matches = cv::Mat(IMAGE_HEIGHT * 2, IMAGE_WIDTH, CV_8UC3);
+    mpCurrentKeyFrame->learned_map_frame->image.copyTo(img_matches(cv::Rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT)));
+    img_kf.copyTo(img_matches(cv::Rect(0, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT)));
+    cv::putText(img_matches, "Real-time keyframes", cv::Point2f(20, 20), 1, 1.5, cv::Scalar(0, 0, 255));
+    cv::putText(img_matches, "Keyframe in visual maps", cv::Point2f(20, 20+IMAGE_HEIGHT), 1, 1.5, cv::Scalar(0, 0, 255));
+
+    for (const auto m:matches_kf) {
+        Eigen::Vector2d pt1 = mpCurrentKeyFrame->learned_map_frame->get_features_uv()[m.first];
+        Eigen::Vector2d pt2 = kf_frame->get_features_uv()[m.second];
+        cv::line(img_matches, cv::Point2f((float)pt1.x(), (float)pt1.y()),
+                 cv::Point2f((float)pt2.x(), (float)pt2.y() + IMAGE_HEIGHT),
+                 cv::Scalar(0, 255, 0), 1);
+    }
+    cv::imshow("matches", img_matches);
+
+    cv::imshow("image", show);
 }
 
 void LocalMapping::EmptyQueue()
@@ -1554,10 +1732,14 @@ LocalMapping::sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING
     std::vector<double> sorted_distances;
     sorted_ids.reserve(frames.size());
     sorted_distances.reserve(frames.size());
+    Eigen::Quaterniond q(R);
     for (const auto& frame : frames) {
         Eigen::Vector3d t_ = frame->get_t();
         Eigen::Vector3d t_diff = t_ - t;
+        t_diff[2] = 2 * t_diff[2];
         double distance = t_diff.norm();
+        Eigen::Quaterniond q_ = Eigen::Quaterniond(frame->get_R());
+        distance += 4 * (1 - q.dot(q_));
         sorted_distances.push_back(distance);
         sorted_ids.push_back(frame->id);
     }
