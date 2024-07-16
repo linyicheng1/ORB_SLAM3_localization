@@ -156,8 +156,12 @@ void LocalMapping::Run()
                         Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
                         b_doneLBA = true;
                     }
-//                    Qow = Optimizer::Qow;
-//                    Pow = Optimizer::Pow;
+//                    Eigen::Matrix3d Row_ = Optimizer::Qow.toRotationMatrix();
+//                    Eigen::Vector3d Pow_ = Optimizer::Pow;
+//                    mpCurrentKeyFrame->Row = Row_;
+//                    mpCurrentKeyFrame->tow = Pow_;
+//                    Qwo = Eigen::Quaterniond(Row_.transpose());
+//                    Pwo = -Row_.transpose()*Pow_;
                 }
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
@@ -385,7 +389,7 @@ void LocalMapping::ProcessNewKeyFrame()
     Eigen::Matrix4d Twc = Two * init_T;
     mpCurrentKeyFrame->learned_map_frame->set_T(Twc);
     std::vector<int> close_frame_ids = sort_frames_by_distance(mapping->map.frames_, Twc);
-    std::cout<<"init Two "<<Two<<std::endl;
+//    std::cout<<"init Two "<<Two<<std::endl;
 //    std::cout<<" close_frame_ids "<<close_frame_ids[0]<<std::endl;
 
     int max_matches = 100;
@@ -446,13 +450,23 @@ void LocalMapping::ProcessNewKeyFrame()
                 std::cout<<" second inliers: " << inliers_num << std::endl;
                 Eigen::Matrix4d T_ba = mpCurrentKeyFrame->learned_map_frame->get_T();
                 Eigen::Matrix4d T_wo = T_ba * init_T.inverse();
-                Qwo = Eigen::Quaterniond(T_wo.block<3, 3>(0, 0));
                 Pwo = T_wo.block<3, 1>(0, 3);
-                std::cout<<"update T_wo "<<T_wo<<std::endl;
+                Qwo = Eigen::Quaterniond(T_wo.block<3, 3>(0, 0));
+
+//                std::cout<<"update T_wo "<<T_wo<<std::endl;
+                Eigen::Vector3d dt = Twc.block<3, 1>(0, 3) - T_ba.block<3, 1>(0, 3);
+                Eigen::Quaterniond q1 = Eigen::Quaterniond(Twc.block<3, 3>(0, 0));
+                Eigen::Quaterniond q2 = Eigen::Quaterniond(T_ba.block<3, 3>(0, 0));
+                double dq = q1.angularDistance(q2);
+                std::cout<<" dt: "<<dt.transpose()<<" dq: "<<dq<<std::endl;
+
                 break;
             }
         }
     }
+    mpCurrentKeyFrame->Row = Qwo.toRotationMatrix().transpose();
+    mpCurrentKeyFrame->tow = -Qwo.toRotationMatrix().transpose() * Pwo;
+
 //    std::shared_ptr<VISUAL_MAPPING::Frame> c_frame = mapping->map.frames_[close_frame_ids[0]];
 //    std::vector<std::pair<int, int>> matches = matcher.match_re_projective(c_frame, mpCurrentKeyFrame->learned_map_frame);
 //    // not enough matches
@@ -515,7 +529,7 @@ void LocalMapping::ProcessNewKeyFrame()
             cv::circle(show, cv::Point((int)mpCurrentKeyFrame->learned_map_frame->get_features_uv()[i][0], (int)mpCurrentKeyFrame->learned_map_frame->get_features_uv()[i][1]), 2, cv::Scalar(0, 0, 255), 2);
         }
     }
-
+    // /home/vio/Datasets/4seasons/recording_2021-05-10_19-15-19/undistorted_images/cam0/
     std::string img_path_kf = "/home/vio/Datasets/4seasons/recording_2020-12-22_12-04-35/undistorted_images/cam0/";
     std::string img_list_path_kf = "/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/Examples/Stereo/kf_corridor2_02.txt";
     auto img_list_kf = read_img_path_kf(img_path_kf, img_list_path_kf);
@@ -1739,7 +1753,7 @@ LocalMapping::sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING
         t_diff[2] = 2 * t_diff[2];
         double distance = t_diff.norm();
         Eigen::Quaterniond q_ = Eigen::Quaterniond(frame->get_R());
-        distance += 4 * (1 - q.dot(q_));
+        distance += 10 * (1 - q.dot(q_));
         sorted_distances.push_back(distance);
         sorted_ids.push_back(frame->id);
     }

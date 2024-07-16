@@ -126,7 +126,7 @@ int main(int argc, char **argv)
         proccIm = 0;
         for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
         {
-            if (ni < 500)
+            if (ni < 540)
                 continue;
             // Read image from file
             imLeft = cv::imread(vstrImageLeftFilenames[seq][ni],cv::IMREAD_GRAYSCALE);
@@ -207,7 +207,10 @@ int main(int argc, char **argv)
                 T = vTimestampsCam[seq][ni+1]-tframe;
             else if(ni>0)
                 T = tframe-vTimestampsCam[seq][ni-1];
-            usleep(0.05*1e6); // 1e6
+            if (ni < 800)
+                usleep(0.1*1e6); // 1e6
+            else
+                usleep(0.05*1e6); // 1e6
 //            cv::waitKey(0);
             if(ttrack<T)
                 usleep((T-ttrack)*1e6); // 1e6
@@ -236,8 +239,10 @@ int main(int argc, char **argv)
     {
         const string kf_file =  "kf_" + string(argv[argc-1]) + ".txt";
         const string f_file =  "f_" + string(argv[argc-1]) + ".txt";
-//        SLAM.SaveTrajectoryEuRoC(f_file);
-//        SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file);
+        const string g_file =  "g_" + string(argv[argc-1]) + ".txt";
+        SLAM.SaveGlobalTrajectoryEuRoC(g_file);
+        SLAM.SaveTrajectoryEuRoC(f_file);
+        SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file);
     }
     else
     {

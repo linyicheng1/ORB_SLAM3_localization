@@ -1433,8 +1433,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             e->setRobustKernel(rk);
             e->pCamera = pKFi->mpCamera;
             e->Xw = learned_map_frame->map_points[i]->x3D;
-            Sophus::SE3<float> Tcw = pKFi->GetPose();
-            e->mTrl = g2o::SE3Quat(Tcw.unit_quaternion().cast<double>(), Tcw.translation().cast<double>());
+            Sophus::SE3<float> Tco = pKFi->GetPose();
+            e->mTrl = g2o::SE3Quat(Tco.unit_quaternion().cast<double>(), Tco.translation().cast<double>());
             map_edges.push_back(e);
         }
 
