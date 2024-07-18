@@ -156,12 +156,12 @@ void LocalMapping::Run()
                         Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
                         b_doneLBA = true;
                     }
-//                    Eigen::Matrix3d Row_ = Optimizer::Qow.toRotationMatrix();
-//                    Eigen::Vector3d Pow_ = Optimizer::Pow;
-//                    mpCurrentKeyFrame->Row = Row_;
-//                    mpCurrentKeyFrame->tow = Pow_;
-//                    Qwo = Eigen::Quaterniond(Row_.transpose());
-//                    Pwo = -Row_.transpose()*Pow_;
+                    Eigen::Matrix3d Row_ = Optimizer::Qow.toRotationMatrix();
+                    Eigen::Vector3d Pow_ = Optimizer::Pow;
+                    mpCurrentKeyFrame->Row = Row_;
+                    mpCurrentKeyFrame->tow = Pow_;
+                    Qwo = Eigen::Quaterniond(Row_.transpose());
+                    Pwo = -Row_.transpose()*Pow_;
                 }
 #ifdef REGISTER_TIMES
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
@@ -384,8 +384,8 @@ void LocalMapping::ProcessNewKeyFrame()
 
     Eigen::Matrix4d init_T = mpCurrentKeyFrame->learned_map_frame->get_T();
     Eigen::Matrix4d Two = Eigen::Matrix4d::Identity();
-    Two.block<3, 3>(0, 0) = Qwo.toRotationMatrix();
-    Two.block<3, 1>(0, 3) = Pwo;
+    Two.block<3, 3>(0, 0) = lQwo.toRotationMatrix();
+    Two.block<3, 1>(0, 3) = lPwo;
     Eigen::Matrix4d Twc = Two * init_T;
     mpCurrentKeyFrame->learned_map_frame->set_T(Twc);
     std::vector<int> close_frame_ids = sort_frames_by_distance(mapping->map.frames_, Twc);
@@ -399,6 +399,11 @@ void LocalMapping::ProcessNewKeyFrame()
     // 1. try to match with the closest frame
     for (int i = 0;i < 3; i++) {
         std::shared_ptr<VISUAL_MAPPING::Frame> c_frame = mapping->map.frames_[close_frame_ids[i]];
+        int valid_count = 0;
+        for (const auto&mp:c_frame->map_points) {
+            if (mp != nullptr) {valid_count ++;}
+        }
+        std::cout<<" valid_count: "<<valid_count<<std::endl;
         // 3.1 KNN match
         std::vector<std::pair<int, int>> matches = matcher.match_knn(*c_frame, *mpCurrentKeyFrame->learned_map_frame);
         int matches_num = 0;
@@ -422,7 +427,7 @@ void LocalMapping::ProcessNewKeyFrame()
                     inliers_num ++;
                 }
             }
-            std::cout<<" first inliers: " << inliers_num << std::endl;
+//            std::cout<<" first inliers: " << inliers_num << std::endl;
         }
 
         matches = matcher.match_re_projective(c_frame, mpCurrentKeyFrame->learned_map_frame);
@@ -433,9 +438,8 @@ void LocalMapping::ProcessNewKeyFrame()
                 matches_num ++;
             }
         }
-
+        std::cout<<" second matches : " << matches_num << std::endl;
         if (matches_num > 30) {
-            mpCurrentKeyFrame->learned_map_frame->set_T(Twc);
             std::vector<bool> inliers = ba.optimize_pose(mpCurrentKeyFrame->learned_map_frame);
 //                std::cout<<"T " << tgt_frame->get_T() << std::endl;;
             int inliers_num = 0;
@@ -447,11 +451,10 @@ void LocalMapping::ProcessNewKeyFrame()
                 }
             }
             if (inliers_num > 30) {
-                std::cout<<" second inliers: " << inliers_num << std::endl;
                 Eigen::Matrix4d T_ba = mpCurrentKeyFrame->learned_map_frame->get_T();
                 Eigen::Matrix4d T_wo = T_ba * init_T.inverse();
-                Pwo = T_wo.block<3, 1>(0, 3);
-                Qwo = Eigen::Quaterniond(T_wo.block<3, 3>(0, 0));
+                lPwo = T_wo.block<3, 1>(0, 3);
+                lQwo = Eigen::Quaterniond(T_wo.block<3, 3>(0, 0));
 
 //                std::cout<<"update T_wo "<<T_wo<<std::endl;
                 Eigen::Vector3d dt = Twc.block<3, 1>(0, 3) - T_ba.block<3, 1>(0, 3);
@@ -536,24 +539,24 @@ void LocalMapping::ProcessNewKeyFrame()
 
     cv::Mat img_kf = cv::imread(img_list_kf[close_frame_ids[0]+157]);
 
-    Eigen::Matrix4d I = mapping->map.frames_[close_frame_ids[0]]->get_T();
-    auto cam1 = mpCurrentKeyFrame->learned_map_frame->camera;
-    std::shared_ptr<VISUAL_MAPPING::Frame> kf_frame = std::make_shared<VISUAL_MAPPING::Frame>(0, detection, init_T, img_kf, img_kf, cam1, cam1, I);
-    std::vector<std::pair<int, int>> matches_kf = matcher.match_knn(*mpCurrentKeyFrame->learned_map_frame, *kf_frame);
-    cv::Mat img_matches = cv::Mat(IMAGE_HEIGHT * 2, IMAGE_WIDTH, CV_8UC3);
-    mpCurrentKeyFrame->learned_map_frame->image.copyTo(img_matches(cv::Rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT)));
-    img_kf.copyTo(img_matches(cv::Rect(0, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT)));
-    cv::putText(img_matches, "Real-time keyframes", cv::Point2f(20, 20), 1, 1.5, cv::Scalar(0, 0, 255));
-    cv::putText(img_matches, "Keyframe in visual maps", cv::Point2f(20, 20+IMAGE_HEIGHT), 1, 1.5, cv::Scalar(0, 0, 255));
-
-    for (const auto m:matches_kf) {
-        Eigen::Vector2d pt1 = mpCurrentKeyFrame->learned_map_frame->get_features_uv()[m.first];
-        Eigen::Vector2d pt2 = kf_frame->get_features_uv()[m.second];
-        cv::line(img_matches, cv::Point2f((float)pt1.x(), (float)pt1.y()),
-                 cv::Point2f((float)pt2.x(), (float)pt2.y() + IMAGE_HEIGHT),
-                 cv::Scalar(0, 255, 0), 1);
-    }
-    cv::imshow("matches", img_matches);
+//    Eigen::Matrix4d I = mapping->map.frames_[close_frame_ids[0]]->get_T();
+//    auto cam1 = mpCurrentKeyFrame->learned_map_frame->camera;
+//    std::shared_ptr<VISUAL_MAPPING::Frame> kf_frame = std::make_shared<VISUAL_MAPPING::Frame>(0, detection, init_T, img_kf, img_kf, cam1, cam1, I);
+//    std::vector<std::pair<int, int>> matches_kf = matcher.match_knn(*mpCurrentKeyFrame->learned_map_frame, *kf_frame);
+//    cv::Mat img_matches = cv::Mat(IMAGE_HEIGHT * 2, IMAGE_WIDTH, CV_8UC3);
+//    mpCurrentKeyFrame->learned_map_frame->image.copyTo(img_matches(cv::Rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT)));
+//    img_kf.copyTo(img_matches(cv::Rect(0, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT)));
+//    cv::putText(img_matches, "Real-time keyframes", cv::Point2f(20, 20), 1, 1.5, cv::Scalar(0, 0, 255));
+//    cv::putText(img_matches, "Keyframe in visual maps", cv::Point2f(20, 20+IMAGE_HEIGHT), 1, 1.5, cv::Scalar(0, 0, 255));
+//
+//    for (const auto m:matches_kf) {
+//        Eigen::Vector2d pt1 = mpCurrentKeyFrame->learned_map_frame->get_features_uv()[m.first];
+//        Eigen::Vector2d pt2 = kf_frame->get_features_uv()[m.second];
+//        cv::line(img_matches, cv::Point2f((float)pt1.x(), (float)pt1.y()),
+//                 cv::Point2f((float)pt2.x(), (float)pt2.y() + IMAGE_HEIGHT),
+//                 cv::Scalar(0, 255, 0), 1);
+//    }
+//    cv::imshow("matches", img_matches);
 
     cv::imshow("image", show);
 }

@@ -120,6 +120,8 @@ public:
     std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detection;
     Eigen::Quaterniond Qwo;
     Eigen::Vector3d Pwo;
+    Eigen::Quaterniond lQwo = Eigen::Quaterniond::Identity();
+    Eigen::Vector3d lPwo = Eigen::Vector3d::Zero();
     std::vector<int> sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix3d R, Eigen::Vector3d t);
     std::vector<int> sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix4d T) {
         return sort_frames_by_distance(frames, T.block<3, 3>(0, 0), T.block<3, 1>(0, 3));

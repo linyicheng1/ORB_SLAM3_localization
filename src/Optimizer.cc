@@ -1438,11 +1438,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             map_edges.push_back(e);
         }
 
-//        if (map_edges.size() > 40) {
-//            for (const auto& e:map_edges) {
-//                optimizer.addEdge(e);
-//            }
-//        }
+        if (map_edges.size() > 40) {
+            for (const auto& e:map_edges) {
+                optimizer.addEdge(e);
+            }
+        }
     }
 
     if(pbStopFlag)

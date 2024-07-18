@@ -126,7 +126,7 @@ int main(int argc, char **argv)
         proccIm = 0;
         for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
         {
-            if (ni < 540)
+            if (ni < 500)
                 continue;
             // Read image from file
             imLeft = cv::imread(vstrImageLeftFilenames[seq][ni],cv::IMREAD_GRAYSCALE);
@@ -207,10 +207,10 @@ int main(int argc, char **argv)
                 T = vTimestampsCam[seq][ni+1]-tframe;
             else if(ni>0)
                 T = tframe-vTimestampsCam[seq][ni-1];
-            if (ni < 800)
-                usleep(0.1*1e6); // 1e6
-            else
-                usleep(0.05*1e6); // 1e6
+//            if (ni < 800)
+//                usleep(0.1*1e6); // 1e6
+//            else
+                usleep(0.08*1e6); // 1e6
 //            cv::waitKey(0);
             if(ttrack<T)
                 usleep((T-ttrack)*1e6); // 1e6
