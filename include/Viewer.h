@@ -99,6 +99,7 @@ private:
 
     // add
     std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
+    bool bLocalization;
 };
 
 }

@@ -181,7 +181,14 @@ public:
 
     // add
     std::shared_ptr<VISUAL_MAPPING::Mapping> mapping;
-    std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detection;
+    std::shared_ptr<VISUAL_MAPPING::FeatureDetection> detection = nullptr;
+    bool bLocalization;
+    int nFeatureType;
+    std::string sWeightingPath;
+    int nFeatureNMS;
+    int nMaxFeatures;
+    int nImageWidth;
+    int nImageHeight;
 #ifdef REGISTER_TIMES
     void LocalMapStats2File();
     void TrackStats2File();

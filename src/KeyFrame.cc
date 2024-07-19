@@ -64,27 +64,30 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB, std::shared_ptr
 {
     mnId=nNextId++;
 
-    Eigen::Matrix4d init_T = Eigen::Matrix4d::Identity();
-    init_T.block<3, 3>(0, 0) = F.GetRwc().cast<double>();
-    init_T.block<3, 1>(0, 3) = F.GetOw().cast<double>();
+    if (detector != nullptr) {
+        Eigen::Matrix4d init_T = Eigen::Matrix4d::Identity();
+        init_T.block<3, 3>(0, 0) = F.GetRwc().cast<double>();
+        init_T.block<3, 1>(0, 3) = F.GetOw().cast<double>();
 
-    cv::Mat img;
-    if (F.imgLeft.channels() == 1){
-        cv::cvtColor(F.imgLeft, img, cv::COLOR_GRAY2BGR);
-    } else {
-        img = F.imgLeft;
-    }
+        cv::Mat img;
+        if (F.imgLeft.channels() == 1){
+            cv::cvtColor(F.imgLeft, img, cv::COLOR_GRAY2BGR);
+        } else {
+            img = F.imgLeft;
+        }
 
-    auto param2 = new VISUAL_MAPPING::Camera::KannalaBrandt8Params(fx, fy, cx, cy,
-                                                                   0.33333333333,
-                                                                   0.13333333333,
-                                                                   0.05396825396,
-                                                                   0.02186948853);
+        auto param2 = new VISUAL_MAPPING::Camera::KannalaBrandt8Params(fx, fy, cx, cy,
+                                                                       mDistCoef.at<float>(0),
+                                                                       mDistCoef.at<float>(1),
+                                                                       mDistCoef.at<float>(2),
+                                                                       mDistCoef.at<float>(3));
+
 //    std::cout<<"fx: "<<fx<<" fy: "<<fy<<" cx: "<<cx<<" cy: "<<cy<<" k1: "<<mDistCoef.at<float>(0)<<" k2: "<<mDistCoef.at<float>(1)<<" k3: "<<mDistCoef.at<float>(2)<<" k4: "<<mDistCoef.at<float>(3)<<std::endl;
-    camera->setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
-    camera->setKannalaBrandt8Params(*param2);
-    learned_map_frame = std::make_shared<VISUAL_MAPPING::Frame>(mnId, detector, init_T,
-                                                                img, camera);
+        camera->setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
+        camera->setKannalaBrandt8Params(*param2);
+        learned_map_frame = std::make_shared<VISUAL_MAPPING::Frame>(mnId, detector, init_T,
+                                                                    img, camera);
+    }
 
     mGrid.resize(mnGridCols);
     if(F.Nleft != -1)  mGridRight.resize(mnGridCols);

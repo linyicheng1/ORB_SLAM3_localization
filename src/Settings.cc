@@ -172,7 +172,8 @@ namespace ORB_SLAM3 {
         cout << "\t-Loaded Atlas settings" << endl;
         readOtherParameters(fSettings);
         cout << "\t-Loaded misc parameters" << endl;
-
+        readLocalization(fSettings);
+        cout << "\t-Loaded localization parameters" << endl;
         if(bNeedToRectify_){
             precomputeRectificationMaps();
             cout << "\t-Computed rectification maps" << endl;
@@ -480,6 +481,17 @@ namespace ORB_SLAM3 {
         bool found;
 
         thFarPoints_ = readParameter<float>(fSettings,"System.thFarPoints",found,false);
+    }
+
+    void Settings::readLocalization(cv::FileStorage& fSettings) {
+        bool found;
+
+        bLocalization_ = readParameter<int>(fSettings,"Localization",found,false);
+        sMapFile_ = readParameter<string>(fSettings,"Localization.Map",found,false);
+        nFeatureType_ = readParameter<int>(fSettings,"Localization.Feature",found,false);
+        nFeatureNMS_ = readParameter<int>(fSettings,"Localization.NMS",found,false);
+        nMaxFeatures_ = readParameter<int>(fSettings,"Localization.MaxFeatures",found,false);
+        sFeatureWeight_ = readParameter<string>(fSettings,"Localization.FeatureWeight",found,false);
     }
 
     void Settings::precomputeRectificationMaps() {

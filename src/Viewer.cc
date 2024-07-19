@@ -76,6 +76,7 @@ void Viewer::newParameterLoader(Settings *settings) {
     mViewpointY = settings->viewPointY();
     mViewpointZ = settings->viewPointZ();
     mViewpointF = settings->viewPointF();
+    bLocalization = settings->localization();
 }
 
 bool Viewer::ParseViewerParamFile(cv::FileStorage &fSettings)
@@ -319,52 +320,54 @@ void Viewer::Run()
         if(menuShowPoints)
             mpMapDrawer->DrawMapPoints();
         // add
-        Eigen::Matrix3d Rwo = Eigen::Matrix3d::Identity();
-        Eigen::Vector3d two = Eigen::Vector3d::Zero();
-        mpSystem->GetLocal2Global(Rwo, two);
-        Eigen::Matrix3d Row = Rwo.transpose();
-        Eigen::Vector3d tow = -Row * two;
+        if (bLocalization) {
+            Eigen::Matrix3d Rwo = Eigen::Matrix3d::Identity();
+            Eigen::Vector3d two = Eigen::Vector3d::Zero();
+            mpSystem->GetLocal2Global(Rwo, two);
+            Eigen::Matrix3d Row = Rwo.transpose();
+            Eigen::Vector3d tow = -Row * two;
 
-        KeyFrame* kf = mpMapDrawer->GetCurrentKF();
-        std::shared_ptr<VISUAL_MAPPING::Frame> frame = kf->learned_map_frame;
-        Eigen::Vector3d t = Row * frame->get_t() + tow;
-        // draw connected map points
-        for (const auto &mp : frame->map_points) {
-            if (mp != nullptr) {
-                int id = mp->id;
-                if (mapping->map.map_points.find(id) != mapping->map.map_points.end()) {
-                    auto map_point = mapping->map.map_points.at(id);
-                    Eigen::Vector3d p = Row * map_point->x3D + tow;
+            KeyFrame* kf = mpMapDrawer->GetCurrentKF();
+            std::shared_ptr<VISUAL_MAPPING::Frame> frame = kf->learned_map_frame;
+            Eigen::Vector3d t = Row * frame->get_t() + tow;
+            // draw connected map points
+            for (const auto &mp : frame->map_points) {
+                if (mp != nullptr) {
+                    int id = mp->id;
+                    if (mapping->map.map_points.find(id) != mapping->map.map_points.end()) {
+                        auto map_point = mapping->map.map_points.at(id);
+                        Eigen::Vector3d p = Row * map_point->x3D + tow;
 
-                    glLineWidth(1);
-                    glColor3f(0.5f,0.5f,0.9f);
+                        glLineWidth(1);
+                        glColor3f(0.5f,0.5f,0.9f);
 
-                    glBegin(GL_LINES);
-                    glVertex3f((float)t[0],(float)t[1],(float)t[2]);
-                    glVertex3f((float)p[0],(float)p[1],(float)p[2]);
-                    glEnd();
+                        glBegin(GL_LINES);
+                        glVertex3f((float)t[0],(float)t[1],(float)t[2]);
+                        glVertex3f((float)p[0],(float)p[1],(float)p[2]);
+                        glEnd();
+                    }
                 }
             }
-        }
 
-        for (int i = 0;i < mapping->map.max_id; i++) {
-            if (mapping->map.map_points.find(i) == mapping->map.map_points.end()) {
-                continue;
-            }
-            auto map_point = mapping->map.map_points.at(i);
-            if (map_point != nullptr) {
-                Eigen::Vector3d p = Row * map_point->x3D + tow;
+            for (int i = 0;i < mapping->map.max_id; i++) {
+                if (mapping->map.map_points.find(i) == mapping->map.map_points.end()) {
+                    continue;
+                }
+                auto map_point = mapping->map.map_points.at(i);
+                if (map_point != nullptr) {
+                    Eigen::Vector3d p = Row * map_point->x3D + tow;
 //                    std::cout<<"p: "<<p.transpose()<<std::endl;
-                glPointSize(2);
+                    glPointSize(2);
 //                if (map_point->frame_ids.size() > 1) {
 //                    glColor3f(1.0f,0.0f,0.0f);
 //                } else {
-                glColor3f(0.0f,0.5f,0.5f);
+                    glColor3f(0.0f,0.5f,0.5f);
 //                }
 
-                glBegin(GL_POINTS);
-                glVertex3f((float)p[0],(float)p[1],(float)p[2]);
-                glEnd();
+                    glBegin(GL_POINTS);
+                    glVertex3f((float)p[0],(float)p[1],(float)p[2]);
+                    glEnd();
+                }
             }
         }
 

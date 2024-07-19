@@ -96,3 +96,15 @@ Viewer.ViewpointX: 0.0
 Viewer.ViewpointY: -10.0
 Viewer.ViewpointZ: -0.1
 Viewer.ViewpointF: 2000.0
+
+
+# add localization parameters
+
+Localization: 1
+Localization.Map: "/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/cmake-build-debug/map_alike.txt"
+Localization.Feature: 3 # ORB = 0, SIFT = 1, SuperPoint = 2, ALIKE = 3, D2Net = 4, DISK = 5, XFeat = 6,
+Localization.FeatureWeight: "/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/visual_mapping_localization/learned_features_inference/weight/Alike_84"
+Localization.NMS: 8
+Localization.MaxFeatures: 1000
+
+

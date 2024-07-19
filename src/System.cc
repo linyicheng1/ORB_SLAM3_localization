@@ -225,21 +225,25 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
 
     // add
-    mapping = std::make_shared<VISUAL_MAPPING::Mapping>();
-    VISUAL_MAPPING::MapSaver mapSaver;
-    std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>> frames;
-    mapSaver.load_map("/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/cmake-build-debug/map.txt", frames, mapping->map);
-    mpTracker->mapping = mapping;
-    mpLocalMapper->mapping = mapping;
-    mpLocalMapper->detection = mpTracker->detection;
-    VISUAL_MAPPING::Camera cam1;
-    cam1.setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
-    auto param2 = new VISUAL_MAPPING::Camera::KannalaBrandt8Params(501.4757919305817, 501.4757919305817, 421.7953735163109, 167.65799492501083,
-                                                   0.33333333333, 0.13333333333, 0.05396825396, 0.02186948853);
-    cam1.setKannalaBrandt8Params(*param2);
-    for (auto& frame : mapping->map.frames_) {
-        frame->camera = &cam1;
+    if (settings_->localization()) {
+        mapping = std::make_shared<VISUAL_MAPPING::Mapping>();
+        VISUAL_MAPPING::MapSaver mapSaver;
+        std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>> frames;
+        mapSaver.load_map(settings_->mapFile(), frames, mapping->map);
+        mpTracker->mapping = mapping;
+        mpLocalMapper->mapping = mapping;
+        mpLocalMapper->detection = mpTracker->detection;
+        VISUAL_MAPPING::Camera cam1;
+        cam1.setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
+        auto* cam = dynamic_cast<KannalaBrandt8 *>(settings_->camera1());
+        auto param2 = new VISUAL_MAPPING::Camera::KannalaBrandt8Params(cam->getParameter(0), cam->getParameter(1), cam->getParameter(2), cam->getParameter(3),
+                                                                       cam->getParameter(4), cam->getParameter(5), cam->getParameter(6), cam->getParameter(7));
+        cam1.setKannalaBrandt8Params(*param2);
+        for (auto& frame : mapping->map.frames_) {
+            frame->camera = &cam1;
+        }
     }
+
     //usleep(10*1000*1000);
 
     //Initialize the Viewer thread and launch

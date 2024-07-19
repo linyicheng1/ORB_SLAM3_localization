@@ -111,6 +111,12 @@ namespace ORB_SLAM3 {
         float viewPointZ() {return viewPointZ_;}
         float viewPointF() {return viewPointF_;}
         float imageViewerScale() {return imageViewerScale_;}
+        bool localization() {return bLocalization_;}
+        std::string mapFile() {return sMapFile_;}
+        int featureType() {return nFeatureType_;}
+        int featureNMS() {return nFeatureNMS_;}
+        int maxFeatures() {return nMaxFeatures_;}
+        std::string featureWeight() {return sFeatureWeight_;}
 
         std::string atlasLoadFile() {return sLoadFrom_;}
         std::string atlasSaveFile() {return sSaveto_;}
@@ -153,6 +159,7 @@ namespace ORB_SLAM3 {
         void readViewer(cv::FileStorage& fSettings);
         void readLoadAndSave(cv::FileStorage& fSettings);
         void readOtherParameters(cv::FileStorage& fSettings);
+        void readLocalization(cv::FileStorage& fSettings);
 
         void precomputeRectificationMaps();
 
@@ -228,6 +235,15 @@ namespace ORB_SLAM3 {
          */
         float thFarPoints_;
 
+        /*
+         * Localization Parameters
+         */
+        bool bLocalization_;
+        std::string sMapFile_;
+        int nFeatureType_;
+        std::string sFeatureWeight_;
+        int nFeatureNMS_;
+        int nMaxFeatures_;
     };
 };
 

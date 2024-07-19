@@ -424,7 +424,7 @@ public:
     std::vector <KeyFrame*> mvpLoopCandKFs;
     std::vector <KeyFrame*> mvpMergeCandKFs;
 
-    std::shared_ptr<VISUAL_MAPPING::Frame> learned_map_frame;
+    std::shared_ptr<VISUAL_MAPPING::Frame> learned_map_frame = nullptr;
     Eigen::Matrix3d Row;
     Eigen::Vector3d tow;
     //bool mbHasHessian;

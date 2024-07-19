@@ -117,10 +117,12 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
         }
     }
     // add
-    detection = std::make_shared<VISUAL_MAPPING::FeatureDetection>(
-            VISUAL_MAPPING::SuperPoint,
-            "/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/visual_mapping_localization/learned_features_inference/weight/",
-            8, 1000, 800, 400);
+    if (bLocalization) {
+        detection = std::make_shared<VISUAL_MAPPING::FeatureDetection>(
+                nFeatureType,
+                sWeightingPath,
+                nFeatureNMS, nMaxFeatures, nImageWidth, nImageHeight);
+    }
 
 #ifdef REGISTER_TIMES
     vdRectStereo_ms.clear();
@@ -619,6 +621,14 @@ void Tracking::newParameterLoader(Settings *settings) {
     mpImuCalib = new IMU::Calib(Tbc,Ng*sf,Na*sf,Ngw/sf,Naw/sf);
 
     mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(),*mpImuCalib);
+
+    bLocalization = settings->localization();
+    nFeatureType = settings->featureType();
+    sWeightingPath = settings->featureWeight();
+    nFeatureNMS = settings->featureNMS();
+    nMaxFeatures = settings->maxFeatures();
+    nImageWidth = settings->newImSize().width;
+    nImageHeight = settings->newImSize().height;
 }
 
 bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)

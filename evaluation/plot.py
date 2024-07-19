@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 读取数据文件
-file_path = '/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/Examples/Stereo/f_long-term.txt'
+file_path = '/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/Examples/Stereo/g_long-term.txt'
 
 timestamps = []
 positions = []
@@ -28,4 +28,4 @@ plt.legend()
 plt.title('XY Plane Trajectory')
 plt.show()
 
-plt.savefig('f_long-term.png')
+plt.savefig('ggggg_long-term.png')
