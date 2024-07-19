@@ -44,8 +44,9 @@
 
 namespace ORB_SLAM3
 {
-    Eigen::Quaterniond Optimizer::Qow = Eigen::Quaterniond(1,0,0,0);
-    Eigen::Vector3d Optimizer::Pow = Eigen::Vector3d(0,0,0);
+Eigen::Quaterniond Optimizer::Qow = Eigen::Quaterniond(1,0,0,0);
+Eigen::Vector3d Optimizer::Pow = Eigen::Vector3d(0,0,0);
+float Optimizer::filter_k = 0.1;
 
 bool sortByVal(const pair<MapPoint*, int> &a, const pair<MapPoint*, int> &b)
 {
@@ -1116,7 +1117,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     return nInitialCorrespondences-nBad;
 }
 
-void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap, int& num_fixedKF, int& num_OptKF, int& num_MPs, int& num_edges)
+void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap, int& num_fixedKF, int& num_OptKF, int& num_MPs, int& num_edges, int& min_matches)
 {
     // Local KeyFrames: First Breath Search from Current Keyframe
     list<KeyFrame*> lLocalKeyFrames;
@@ -1439,7 +1440,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
                 map_edges.push_back(e);
             }
 
-            if (map_edges.size() > 40) {
+            if (map_edges.size() > min_matches) {
+
                 for (const auto& e:map_edges) {
                     optimizer.addEdge(e);
                 }

@@ -492,6 +492,9 @@ namespace ORB_SLAM3 {
         nFeatureNMS_ = readParameter<int>(fSettings,"Localization.NMS",found,false);
         nMaxFeatures_ = readParameter<int>(fSettings,"Localization.MaxFeatures",found,false);
         sFeatureWeight_ = readParameter<string>(fSettings,"Localization.FeatureWeight",found,false);
+        nPNPMinMatches_ = readParameter<int>(fSettings,"Localization.PNPMinMatches",found,false);
+        nBAMinMatches_ = readParameter<int>(fSettings,"Localization.BAMinMatches",found,false);
+        fFilter_ = readParameter<float>(fSettings,"Localization.Filter",found,false);
     }
 
     void Settings::precomputeRectificationMaps() {

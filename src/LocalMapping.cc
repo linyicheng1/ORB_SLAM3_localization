@@ -153,7 +153,7 @@ void LocalMapping::Run()
                     }
                     else
                     {
-                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, nBAMinMatches_);
                         b_doneLBA = true;
                     }
                     // add
@@ -164,6 +164,7 @@ void LocalMapping::Run()
                         mpCurrentKeyFrame->tow = Pow_;
                         Qwo = Eigen::Quaterniond(Row_.transpose());
                         Pwo = -Row_.transpose()*Pow_;
+                        Optimizer::filter_k = fFilter_;
                     }
                 }
 #ifdef REGISTER_TIMES
@@ -442,7 +443,7 @@ void LocalMapping::ProcessNewKeyFrame()
                 }
             }
             std::cout<<" second matches : " << matches_num << std::endl;
-            if (matches_num > 30) {
+            if (matches_num > nPNPMinMatches_) {
                 std::vector<bool> inliers = ba.optimize_pose(mpCurrentKeyFrame->learned_map_frame);
 //                std::cout<<"T " << tgt_frame->get_T() << std::endl;;
                 int inliers_num = 0;
@@ -453,7 +454,7 @@ void LocalMapping::ProcessNewKeyFrame()
                         inliers_num ++;
                     }
                 }
-                if (inliers_num > 30) {
+                if (inliers_num > nPNPMinMatches_) {
                     Eigen::Matrix4d T_ba = mpCurrentKeyFrame->learned_map_frame->get_T();
                     Eigen::Matrix4d T_wo = T_ba * init_T.inverse();
                     lPwo = T_wo.block<3, 1>(0, 3);

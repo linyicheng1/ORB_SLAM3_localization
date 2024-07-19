@@ -106,5 +106,8 @@ Localization.Feature: 3 # ORB = 0, SIFT = 1, SuperPoint = 2, ALIKE = 3, D2Net = 
 Localization.FeatureWeight: "/home/vio/Code/VIO/visual_localization/ORB_SLAM3_localization/visual_mapping_localization/learned_features_inference/weight/Alike_84"
 Localization.NMS: 8
 Localization.MaxFeatures: 1000
+Localization.PNPMinMatches: 20
+Localization.BAMinMatches: 20
+Localization.Filter: 0.2
 
 

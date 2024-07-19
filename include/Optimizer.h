@@ -54,7 +54,7 @@ public:
                                        const unsigned long nLoopKF=0, const bool bRobust = true);
     void static FullInertialBA(Map *pMap, int its, const bool bFixLocal=false, const unsigned long nLoopKF=0, bool *pbStopFlag=NULL, bool bInit=false, float priorG = 1e2, float priorA=1e6, Eigen::VectorXd *vSingVal = NULL, bool *bHess=NULL);
 
-    void static LocalBundleAdjustment(KeyFrame* pKF, bool *pbStopFlag, Map *pMap, int& num_fixedKF, int& num_OptKF, int& num_MPs, int& num_edges);
+    void static LocalBundleAdjustment(KeyFrame* pKF, bool *pbStopFlag, Map *pMap, int& num_fixedKF, int& num_OptKF, int& num_MPs, int& num_edges, int& min_matches);
 
     int static PoseOptimization(Frame* pFrame);
     int static PoseInertialOptimizationLastKeyFrame(Frame* pFrame, bool bRecInit = false);
@@ -103,10 +103,11 @@ public:
     // local to global
     static Eigen::Quaterniond Qow;
     static Eigen::Vector3d Pow;
+    static float filter_k;
 
     void static update(const Eigen::Vector3d& p, const Eigen::Quaterniond& a)
     {
-        float k =  0.9;
+        float k =  1 - filter_k;
         Pow = Pow*k + p * (1 - k);
         Qow = Qow.coeffs() * k  + a.coeffs() * (1 - k);
         Qow = Qow.normalized();

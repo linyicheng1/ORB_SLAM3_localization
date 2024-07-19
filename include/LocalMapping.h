@@ -126,6 +126,9 @@ public:
     std::vector<int> sort_frames_by_distance(std::vector<std::shared_ptr<VISUAL_MAPPING::Frame>>& frames, Eigen::Matrix4d T) {
         return sort_frames_by_distance(frames, T.block<3, 3>(0, 0), T.block<3, 1>(0, 3));
     }
+    int nPNPMinMatches_;
+    int nBAMinMatches_;
+    float fFilter_;
 #ifdef REGISTER_TIMES
     vector<double> vdKFInsert_ms;
     vector<double> vdMPCulling_ms;

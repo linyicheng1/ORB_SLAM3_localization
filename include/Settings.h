@@ -117,6 +117,9 @@ namespace ORB_SLAM3 {
         int featureNMS() {return nFeatureNMS_;}
         int maxFeatures() {return nMaxFeatures_;}
         std::string featureWeight() {return sFeatureWeight_;}
+        int PNPMinMatches() {return nPNPMinMatches_;}
+        int BAMinMatches() {return nBAMinMatches_;}
+        float filter() {return fFilter_;}
 
         std::string atlasLoadFile() {return sLoadFrom_;}
         std::string atlasSaveFile() {return sSaveto_;}
@@ -244,6 +247,9 @@ namespace ORB_SLAM3 {
         std::string sFeatureWeight_;
         int nFeatureNMS_;
         int nMaxFeatures_;
+        int nPNPMinMatches_;
+        int nBAMinMatches_;
+        float fFilter_;
     };
 };
 

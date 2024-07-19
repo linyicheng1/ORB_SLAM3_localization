@@ -233,6 +233,9 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpTracker->mapping = mapping;
         mpLocalMapper->mapping = mapping;
         mpLocalMapper->detection = mpTracker->detection;
+        mpLocalMapper->nBAMinMatches_ = settings_->BAMinMatches();
+        mpLocalMapper->nPNPMinMatches_  = settings_->PNPMinMatches();\
+        mpLocalMapper->fFilter_ = settings_->filter();
         VISUAL_MAPPING::Camera cam1;
         cam1.setModelType(VISUAL_MAPPING::KANNALA_BRANDT8);
         auto* cam = dynamic_cast<KannalaBrandt8 *>(settings_->camera1());
